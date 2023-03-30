@@ -1,5 +1,7 @@
 package com.nice.avishkar;
 
+import java.util.Comparator;
+
 public class PredictedProductInfo {
 
     long productId;
@@ -37,5 +39,15 @@ public class PredictedProductInfo {
                 ", productName='" + productName + '\'' +
                 ", predictedQuantity=" + predictedQuantity +
                 '}';
+    }
+
+
+    public static int compareByQuantity(PredictedProductInfo o1, PredictedProductInfo o2) {
+        if (o1.getPredictedQuantity() > o2.getPredictedQuantity())
+            return -1;
+        else if (o1.getPredictedQuantity() == o2.getPredictedQuantity()) {
+            return o1.getProductName().compareTo(o2.getProductName());
+        } else
+            return 1;
     }
 }
