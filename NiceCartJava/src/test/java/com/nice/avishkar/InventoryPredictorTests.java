@@ -1,5 +1,8 @@
 package com.nice.avishkar;
 
+import com.nice.avishkar.impl.utils.InventoryPredictor;
+import com.nice.avishkar.pojo.PredictedWarehouseInfo;
+import com.nice.avishkar.pojo.ResourceInfo;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -8,8 +11,6 @@ import org.mockito.MockitoAnnotations;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
 
 public class InventoryPredictorTests {
 

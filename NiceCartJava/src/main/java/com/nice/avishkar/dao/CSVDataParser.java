@@ -1,8 +1,8 @@
-package com.nice.avishkar.utils;
+package com.nice.avishkar.dao;
 
-import com.nice.avishkar.Product;
-import com.nice.avishkar.ResourceInfo;
-import com.nice.avishkar.SellDayHistory;
+import com.nice.avishkar.pojo.Product;
+import com.nice.avishkar.pojo.ResourceInfo;
+import com.nice.avishkar.pojo.SellDayHistory;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
@@ -25,45 +25,28 @@ public class CSVDataParser implements DataParser {
 
     @Override
     public Map<String, Product> parse(ResourceInfo resourceInfo) throws FileNotFoundException {
-        //resourceInfo.
         Map<String, Product> productEntities = parseProductCSV(resourceInfo);
-        setDayOneData(productEntities, resourceInfo.getDay1HistoryPath());
-        setDayTwoData(productEntities, resourceInfo.getDay2HistoryPath());
-        setDayThreeData(productEntities, resourceInfo.getDay3HistoryPath());
-        setDayFourData(productEntities, resourceInfo.getDay4HistoryPath());
+        List<Path> historyPaths = Arrays.asList(resourceInfo.getDay1HistoryPath(), resourceInfo.getDay2HistoryPath(),
+                                                resourceInfo.getDay3HistoryPath(), resourceInfo.getDay4HistoryPath());
+        int day = 1;
+        for(Path history : historyPaths) {
+            setPeriodicalHistory(day, productEntities, history);
+            day++;
+        }
         return productEntities;
     }
 
 
-    private void setDayOneData(Map<String, Product> productEntities, Path sellHistory) throws FileNotFoundException {
+    private void setPeriodicalHistory(int day, Map<String, Product> productEntities, Path sellHistory) throws FileNotFoundException {
         Map<String, List<SellDayHistory>> productSellMap = parseSellHistoryProductCSV(sellHistory);
         for (String prodId : productEntities.keySet()) {
             List<SellDayHistory> sellDayHistories = productSellMap.get(prodId);
-            productEntities.get(prodId).setSellDayHistoryDay1(sellDayHistories);
-        }
-    }
-
-    private void setDayTwoData(Map<String, Product> productEntities, Path sellHistory) throws FileNotFoundException {
-        Map<String, List<SellDayHistory>> productSellMap = parseSellHistoryProductCSV(sellHistory);
-        for (String prodId : productEntities.keySet()) {
-            List<SellDayHistory> sellDayHistories = productSellMap.get(prodId);
-            productEntities.get(prodId).setSellDayHistoryDay2(sellDayHistories);
-        }
-    }
-
-    private void setDayThreeData(Map<String, Product> productEntities, Path sellHistory) throws FileNotFoundException {
-        Map<String, List<SellDayHistory>> productSellMap = parseSellHistoryProductCSV(sellHistory);
-        for (String prodId : productEntities.keySet()) {
-            List<SellDayHistory> sellDayHistories = productSellMap.get(prodId);
-            productEntities.get(prodId).setSellDayHistoryDay3(sellDayHistories);
-        }
-    }
-
-    private void setDayFourData(Map<String, Product> productEntities, Path sellHistory) throws FileNotFoundException {
-        Map<String, List<SellDayHistory>> productSellMap = parseSellHistoryProductCSV(sellHistory);
-        for (String prodId : productEntities.keySet()) {
-            List<SellDayHistory> sellDayHistories = productSellMap.get(prodId);
-            productEntities.get(prodId).setSellDayHistoryDay4(sellDayHistories);
+            Map<Integer, List<SellDayHistory>> sellDayHistoryMap = productEntities.get(prodId).getSellDayHistoryMap();
+            if(sellDayHistoryMap == null) {
+                sellDayHistoryMap = new HashMap<>();
+            }
+            sellDayHistoryMap.put(day, sellDayHistories);
+            productEntities.get(prodId).setSellDayHistoryMap(sellDayHistoryMap);
         }
     }
 
@@ -76,13 +59,12 @@ public class CSVDataParser implements DataParser {
             ).withCSVParser(csvParser).withSkipLines(1).build();
             String[] lineInArray;
             while ((lineInArray = reader.readNext()) != null) {
-                System.out.println(lineInArray[0] + lineInArray[1] + "etc...");
                 Product product = new Product();
                 product.setProductId(lineInArray[0]);
                 product.setProductName(lineInArray[1]);
-                product.setBuyPrice(Long.valueOf(lineInArray[2]));
-                product.setSellPrice(Long.valueOf(lineInArray[3]));
-                product.setQuantity(Long.valueOf(lineInArray[4]));
+                product.setBuyPrice(Long.parseLong(lineInArray[2]));
+                product.setSellPrice(Long.parseLong(lineInArray[3]));
+                product.setQuantity(Long.parseLong(lineInArray[4]));
                 product.setProfitMargin(calculateMargin(product));
                 productEntities.putIfAbsent(product.getProductId(), product);
             }
@@ -103,14 +85,13 @@ public class CSVDataParser implements DataParser {
             ).withCSVParser(csvParser).withSkipLines(1).build();
             String[] lineInArray;
             while ((lineInArray = reader.readNext()) != null) {
-                System.out.println(lineInArray[0] + lineInArray[1] + "etc...");
-                SellDayHistory sellDayHistory = new SellDayHistory();
-                sellDayHistory.setPurchaseHistoryId(lineInArray[0]);
-                sellDayHistory.setProductId(lineInArray[1]);
-                sellDayHistory.setSellQuantity(Long.valueOf(lineInArray[2]));
-                sellDayHistory.setSellPrice(Long.valueOf(lineInArray[3]));
-                sellDayHistory.setTimeOfTheDay(lineInArray[4]);
-                if (!StringUtils.isEmpty(sellDayHistory.getTimeOfTheDay())) {
+                if (!StringUtils.isEmpty(lineInArray[4])) {
+                    SellDayHistory sellDayHistory = new SellDayHistory();
+                    sellDayHistory.setPurchaseHistoryId(lineInArray[0]);
+                    sellDayHistory.setProductId(lineInArray[1]);
+                    sellDayHistory.setSellQuantity(Long.parseLong(lineInArray[2]));
+                    sellDayHistory.setSellPrice(Long.parseLong(lineInArray[3]));
+                    sellDayHistory.setTimeOfTheDay(lineInArray[4]);
                     sellDayHistories.add(sellDayHistory);
                 }
             }
@@ -128,7 +109,6 @@ public class CSVDataParser implements DataParser {
     private BigDecimal calculateMargin(Product product) {
         double profit = Math.subtractExact(product.getSellPrice(), product.getBuyPrice());
         return BigDecimal.valueOf(profit / product.getBuyPrice()).multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.CEILING);
-        //divide(BigDecimal.valueOf(product.getBuyPrice())).multiply(BigDecimal.valueOf(100));
     }
 
 }

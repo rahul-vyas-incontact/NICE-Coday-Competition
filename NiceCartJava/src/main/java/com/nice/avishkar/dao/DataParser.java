@@ -1,7 +1,7 @@
-package com.nice.avishkar.utils;
+package com.nice.avishkar.dao;
 
-import com.nice.avishkar.Product;
-import com.nice.avishkar.ResourceInfo;
+import com.nice.avishkar.pojo.Product;
+import com.nice.avishkar.pojo.ResourceInfo;
 
 import java.io.FileNotFoundException;
 import java.util.Map;

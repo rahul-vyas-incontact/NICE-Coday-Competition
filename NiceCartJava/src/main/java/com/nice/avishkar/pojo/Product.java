@@ -1,7 +1,8 @@
-package com.nice.avishkar;
+package com.nice.avishkar.pojo;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class Product {
@@ -13,47 +14,8 @@ public class Product {
     private long quantity;
     private BigDecimal roi;
     private BigDecimal asr;
-
-
     private BigDecimal profitMargin;
-    private List<SellDayHistory> sellDayHistoryDay1;
-
-    private List<SellDayHistory> sellDayHistoryDay2;
-    private List<SellDayHistory> sellDayHistoryDay3;
-    private List<SellDayHistory> sellDayHistoryDay4;
-
-
-    public List<SellDayHistory> getSellDayHistoryDay1() {
-        return sellDayHistoryDay1;
-    }
-
-    public void setSellDayHistoryDay1(List<SellDayHistory> sellDayHistoryDay1) {
-        this.sellDayHistoryDay1 = sellDayHistoryDay1;
-    }
-
-    public List<SellDayHistory> getSellDayHistoryDay2() {
-        return sellDayHistoryDay2;
-    }
-
-    public void setSellDayHistoryDay2(List<SellDayHistory> sellDayHistoryDay2) {
-        this.sellDayHistoryDay2 = sellDayHistoryDay2;
-    }
-
-    public List<SellDayHistory> getSellDayHistoryDay3() {
-        return sellDayHistoryDay3;
-    }
-
-    public void setSellDayHistoryDay3(List<SellDayHistory> sellDayHistoryDay3) {
-        this.sellDayHistoryDay3 = sellDayHistoryDay3;
-    }
-
-    public List<SellDayHistory> getSellDayHistoryDay4() {
-        return sellDayHistoryDay4;
-    }
-
-    public void setSellDayHistoryDay4(List<SellDayHistory> sellDayHistoryDay4) {
-        this.sellDayHistoryDay4 = sellDayHistoryDay4;
-    }
+    Map<Integer, List<SellDayHistory>> sellDayHistoryMap;
 
     public BigDecimal getRoi() {
         return roi;
@@ -117,6 +79,14 @@ public class Product {
 
     public void setQuantity(long quantity) {
         this.quantity = quantity;
+    }
+
+    public Map<Integer, List<SellDayHistory>> getSellDayHistoryMap() {
+        return sellDayHistoryMap;
+    }
+
+    public void setSellDayHistoryMap(Map<Integer, List<SellDayHistory>> sellDayHistoryMap) {
+        this.sellDayHistoryMap = sellDayHistoryMap;
     }
 
     @Override
