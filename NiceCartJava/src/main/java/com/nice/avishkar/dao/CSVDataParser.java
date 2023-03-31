@@ -1,5 +1,6 @@
 package com.nice.avishkar.dao;
 
+import com.nice.avishkar.impl.utils.Constants;
 import com.nice.avishkar.pojo.Product;
 import com.nice.avishkar.pojo.ResourceInfo;
 import com.nice.avishkar.pojo.SellDayHistory;
@@ -24,12 +25,12 @@ import static java.util.stream.Collectors.toList;
 public class CSVDataParser implements DataParser {
 
     @Override
-    public Map<String, Product> parse(ResourceInfo resourceInfo) throws FileNotFoundException {
+    public Map<String, Product> getProductSellData(ResourceInfo resourceInfo) {
         Map<String, Product> productEntities = parseProductCSV(resourceInfo);
         List<Path> historyPaths = Arrays.asList(resourceInfo.getDay1HistoryPath(), resourceInfo.getDay2HistoryPath(),
-                                                resourceInfo.getDay3HistoryPath(), resourceInfo.getDay4HistoryPath());
+                resourceInfo.getDay3HistoryPath(), resourceInfo.getDay4HistoryPath());
         int day = 1;
-        for(Path history : historyPaths) {
+        for (Path history : historyPaths) {
             setPeriodicalHistory(day, productEntities, history);
             day++;
         }
@@ -37,26 +38,23 @@ public class CSVDataParser implements DataParser {
     }
 
 
-    private void setPeriodicalHistory(int day, Map<String, Product> productEntities, Path sellHistory) throws FileNotFoundException {
+    private void setPeriodicalHistory(int day, Map<String, Product> productEntities, Path sellHistory) {
         Map<String, List<SellDayHistory>> productSellMap = parseSellHistoryProductCSV(sellHistory);
         for (String prodId : productEntities.keySet()) {
             List<SellDayHistory> sellDayHistories = productSellMap.get(prodId);
             Map<Integer, List<SellDayHistory>> sellDayHistoryMap = productEntities.get(prodId).getSellDayHistoryMap();
-            if(sellDayHistoryMap == null) {
-                sellDayHistoryMap = new HashMap<>();
+            if (sellDayHistoryMap == null) {
+                sellDayHistoryMap = new HashMap<>(Constants.HISTORY_PERIOD_IN_DAY);
             }
             sellDayHistoryMap.put(day, sellDayHistories);
             productEntities.get(prodId).setSellDayHistoryMap(sellDayHistoryMap);
         }
     }
 
-    private Map<String, Product> parseProductCSV(ResourceInfo resourceInfo) throws FileNotFoundException {
-        //resourceInfo
+    private Map<String, Product> parseProductCSV(ResourceInfo resourceInfo) {
         Map<String, Product> productEntities = new HashMap<>();
         try {
-            CSVParser csvParser = new CSVParserBuilder().withSeparator(',').build();
-            CSVReader reader = new CSVReaderBuilder(new FileReader(resourceInfo.getProductInfoPath().toString())
-            ).withCSVParser(csvParser).withSkipLines(1).build();
+            CSVReader reader = buildCSVParser(resourceInfo.getProductInfoPath().toString());
             String[] lineInArray;
             while ((lineInArray = reader.readNext()) != null) {
                 Product product = new Product();
@@ -64,46 +62,47 @@ public class CSVDataParser implements DataParser {
                 product.setProductName(lineInArray[1]);
                 product.setBuyPrice(Long.parseLong(lineInArray[2]));
                 product.setSellPrice(Long.parseLong(lineInArray[3]));
-                product.setQuantity(Long.parseLong(lineInArray[4]));
+                product.setQuantity(Long.parseLong(lineInArray[Constants.HISTORY_PERIOD_IN_DAY]));
                 product.setProfitMargin(calculateMargin(product));
                 productEntities.putIfAbsent(product.getProductId(), product);
             }
-        } catch (CsvValidationException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (CsvValidationException | IOException e) {
             e.printStackTrace();
         }
         return productEntities;
     }
 
-    private Map<String, List<SellDayHistory>> parseSellHistoryProductCSV(Path resourceInfo) throws FileNotFoundException {
+    private Map<String, List<SellDayHistory>> parseSellHistoryProductCSV(Path resourceInfo) {
         Map<String, List<SellDayHistory>> productSellsMap = new HashMap<>();
         List<SellDayHistory> sellDayHistories = new ArrayList<>();
         try {
-            CSVParser csvParser = new CSVParserBuilder().withSeparator(',').build();
-            CSVReader reader = new CSVReaderBuilder(new FileReader(resourceInfo.toString())
-            ).withCSVParser(csvParser).withSkipLines(1).build();
+            CSVReader reader = buildCSVParser(resourceInfo.toString());
             String[] lineInArray;
             while ((lineInArray = reader.readNext()) != null) {
-                if (!StringUtils.isEmpty(lineInArray[4])) {
+                if (!StringUtils.isEmpty(lineInArray[Constants.HISTORY_PERIOD_IN_DAY])) {
                     SellDayHistory sellDayHistory = new SellDayHistory();
                     sellDayHistory.setPurchaseHistoryId(lineInArray[0]);
                     sellDayHistory.setProductId(lineInArray[1]);
                     sellDayHistory.setSellQuantity(Long.parseLong(lineInArray[2]));
                     sellDayHistory.setSellPrice(Long.parseLong(lineInArray[3]));
-                    sellDayHistory.setTimeOfTheDay(lineInArray[4]);
+                    sellDayHistory.setTimeOfTheDay(lineInArray[Constants.HISTORY_PERIOD_IN_DAY]);
                     sellDayHistories.add(sellDayHistory);
                 }
             }
             productSellsMap = sellDayHistories.
                     stream().collect(Collectors.groupingBy(SellDayHistory::getProductId, toList()));
 
-        } catch (CsvValidationException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (CsvValidationException | IOException e) {
             e.printStackTrace();
         }
         return productSellsMap;
+    }
+
+    private CSVReader buildCSVParser(String resourcePath) throws FileNotFoundException {
+        CSVParser csvParser = new CSVParserBuilder().withSeparator(Constants.SEPARATOR).build();
+        CSVReader reader = new CSVReaderBuilder(new FileReader(resourcePath)
+        ).withCSVParser(csvParser).withSkipLines(1).build();
+        return reader;
     }
 
     private BigDecimal calculateMargin(Product product) {

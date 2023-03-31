@@ -13,23 +13,12 @@ import java.util.List;
 import java.util.Map;
 
 public class CalculationUtil {
-    public static final int PERCENTAGE_FACTOR = 100;
-    public static final double WEIGHTING_FACTOR = 0.1;
 
-    public PredictedWarehouseInfo calculatePrediction(Map<String, Product> productMap) {
+    public PredictedWarehouseInfo calculatePredictedWareHouseInfo(Map<String, Product> productMap) {
         PredictedWarehouseInfo predictedWarehouseInfo = new PredictedWarehouseInfo();
         List<PredictedProductInfo> predictedProductInfos = new ArrayList<>();
         for (Product product : productMap.values()) {
-            PredictedProductInfo predictedProductInfo = new PredictedProductInfo();
-            predictedProductInfo.setProductId(Long.parseLong(product.getProductId()));
-            predictedProductInfo.setProductName(product.getProductName());
-            if (product.getQuantity() > 0) {
-                double diff = calculatePredictionPerROI(product).doubleValue() + calculatePredictionPerASR(product).doubleValue();
-                predictedProductInfo.setPredictedQuantity(Double.valueOf(Math.ceil(diff / 2)).longValue());
-            } else {
-                predictedProductInfo.setPredictedQuantity(0l);
-            }
-            predictedProductInfos.add(predictedProductInfo);
+            calculatedPredictedProductInfo(predictedProductInfos, product);
         }
         predictedProductInfos.sort(PredictedProductInfo::compareByQuantity);
         predictedWarehouseInfo.setProductList(predictedProductInfos);
@@ -37,33 +26,46 @@ public class CalculationUtil {
         return predictedWarehouseInfo;
     }
 
-    public BigDecimal calculatePredictionPerROI(Product product) {
+    private void calculatedPredictedProductInfo(List<PredictedProductInfo> predictedProductInfos, Product product) {
+        PredictedProductInfo predictedProductInfo = new PredictedProductInfo();
+        predictedProductInfo.setProductId(Long.parseLong(product.getProductId()));
+        predictedProductInfo.setProductName(product.getProductName());
+        if (product.getQuantity() > 0) {
+            double predictedQuantity = calculatePredictionPerROI(product).doubleValue() + calculatePredictionPerASR(product).doubleValue();
+            predictedProductInfo.setPredictedQuantity(Double.valueOf(Math.ceil(predictedQuantity / 2)).longValue());
+        } else {
+            predictedProductInfo.setPredictedQuantity(0l);
+        }
+        predictedProductInfos.add(predictedProductInfo);
+    }
+
+    private BigDecimal calculatePredictionPerROI(Product product) {
         calculateROI(product);
         double availableQuantity = product.getQuantity();
-        return BigDecimal.valueOf(Math.ceil(((product.getRoi().doubleValue() / 10) * (availableQuantity)) / PERCENTAGE_FACTOR) + availableQuantity);
+        return BigDecimal.valueOf(Math.ceil(((product.getRoi().doubleValue() / 10) * (availableQuantity)) / Constants.PERCENTAGE_FACTOR) + availableQuantity);
     }
 
-    public BigDecimal calculatePredictionPerASR(Product product) {
+    private BigDecimal calculatePredictionPerASR(Product product) {
         calculateASR(product);
         double availableQuantity = product.getQuantity();
-        return BigDecimal.valueOf(Math.ceil(product.getAsr().doubleValue() * availableQuantity / PERCENTAGE_FACTOR) + availableQuantity);
+        return BigDecimal.valueOf(Math.ceil(product.getAsr().doubleValue() * availableQuantity / Constants.PERCENTAGE_FACTOR) + availableQuantity);
     }
 
-    public void calculateROI(Product product) {
-        BigDecimal roi = BigDecimal.valueOf(Math.ceil((getTotalProfit(product) / (getTotalInvestment(product)).doubleValue()) * PERCENTAGE_FACTOR));
+    private void calculateROI(Product product) {
+        BigDecimal roi = BigDecimal.valueOf(Math.ceil((getTotalProfit(product) / (getTotalInvestment(product)).doubleValue()) * Constants.PERCENTAGE_FACTOR));
         product.setRoi(roi);
     }
 
-    public void calculateASR(Product product) {
+    private void calculateASR(Product product) {
         double sum = product.getSellDayHistoryMap().entrySet().stream().mapToDouble(day -> {
             double weightingFactor = getWeightingFactorPerDay(day);
             return Math.ceil(getSaleRatePerDay(product, day.getValue()) * weightingFactor);
         }).sum();
-        product.setAsr(BigDecimal.valueOf(Math.ceil(sum / 4)));
+        product.setAsr(BigDecimal.valueOf(Math.ceil(sum / Constants.HISTORY_PERIOD_IN_DAY)));
     }
 
     private static double getWeightingFactorPerDay(Map.Entry<Integer, List<SellDayHistory>> day) {
-        return BigDecimal.valueOf(WEIGHTING_FACTOR * day.getKey()).setScale(1, RoundingMode.DOWN).doubleValue();
+        return BigDecimal.valueOf(Constants.WEIGHTING_FACTOR * day.getKey()).setScale(1, RoundingMode.DOWN).doubleValue();
     }
 
     private double getQuantityPerDay(List<SellDayHistory> sellDayHistories) {
@@ -75,12 +77,12 @@ public class CalculationUtil {
 
     private double getSaleRatePerDay(Product product, List<SellDayHistory> sellDayHistories) {
         double saleRate = getQuantityPerDay(sellDayHistories) / product.getQuantity();
-        return Math.ceil(saleRate * PERCENTAGE_FACTOR);
+        return Math.ceil(saleRate * Constants.PERCENTAGE_FACTOR);
     }
 
     private double getTotalProfit(Product product) {
         double sumOfQuantityAllDays = getSumOfQuantityAllDays(product);
-        return Math.ceil((sumOfQuantityAllDays * (product.getProfitMargin().doubleValue() / PERCENTAGE_FACTOR)) * product.getBuyPrice());
+        return Math.ceil((sumOfQuantityAllDays * (product.getProfitMargin().doubleValue() / Constants.PERCENTAGE_FACTOR)) * product.getBuyPrice());
     }
 
     private double getSumOfQuantityAllDays(Product product) {

@@ -22,7 +22,7 @@ public class InventoryPredictorImpl implements InventoryPredictor {
 
     @Override
     public PredictedWarehouseInfo predictWarehouseCapacityWithProductDetails(ResourceInfo resourceInfo) throws IOException {
-        Map<String, Product> productSellData = csvDataParser.parse(resourceInfo);
-        return calculationUtil.calculatePrediction(productSellData);
+        Map<String, Product> productSellData = csvDataParser.getProductSellData(resourceInfo);
+        return calculationUtil.calculatePredictedWareHouseInfo(productSellData);
     }
 }
